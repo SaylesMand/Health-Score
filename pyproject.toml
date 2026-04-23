@@ -1,0 +1,65 @@
+[project]
+name = "health-score-api"
+version = "0.1.0"
+description = "ML-сервис с биллингом для оценки рисков здоровья"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0",
+    "psycopg2-binary>=2.9.9",
+    "pydantic[email]>=2.6.0",
+    "pydantic-settings>=2.2.0",
+    "catboost>=1.2.0",
+    "scikit-learn>=1.4.0",
+    "celery>=5.3.0",
+    "redis>=5.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "asyncpg>=0.31.0",
+    "jwt>=1.4.0",
+    "jose>=1.0.0",
+    "python-multipart>=0.0.26",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["alembic"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint]
+# E (стиль), F (ошибки), W (предупреждения), C (сложность), B (bugbear - частые баги),
+# Q (кавычки), S (безопасность/bandit), I (импорты), D (документация)
+select = ["E", "F", "W", "C", "B", "Q", "S", "I", "D"]
+ignore = [
+    # Исключения для докстрингов (docstrings)
+    "D100", "D104", "D105", "D107", "D211",
+    # Форматирование и отступы
+    "D213",
+    "D203"
+]
+fixable = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["app"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.3.0",
+    "pytest>=8.0.0",
+    "httpx>=0.27.0",
+    "pre-commit>=3.7.0",
+]

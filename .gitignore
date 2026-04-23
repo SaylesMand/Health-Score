@@ -1,0 +1,28 @@
+# Секреты
+.env
+
+# Виртуальное окружение
+.venv/
+env/
+venv/
+ENV/
+
+# Python: кэш, скомпилированные файлы
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Временные файлы и логи
+temp/
+*.log
+SESSION_LOG_*.md
+
+# IDE
+.vscode/
+.idea/
+
+# Системные файлы
+.DS_Store
