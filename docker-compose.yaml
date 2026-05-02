@@ -1,4 +1,59 @@
 services:
+  api:
+    build: .
+    container_name: health_score_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ml_network
+
+  worker:
+    build: .
+    container_name: health_score_worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ["celery", "-A", "app.tasks.config.celery_app", "worker", "--loglevel=info"]
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    networks:
+      - ml_network
+
+  prometheus:
+    image: prom/prometheus:v2.53.5
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - ml_network
+
+  grafana:
+    image: grafana/grafana:13.1.0-25196703233-ubuntu
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - ml_network
+
   db:
     image: postgres:17-alpine
     container_name: health_score_db
@@ -11,6 +66,21 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ml_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: health_score_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5

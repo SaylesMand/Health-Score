@@ -33,3 +33,16 @@ class TransactionRead(BaseModel):
     created_at: datetime = Field(..., description="Дата и время создания транзакции")
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RefillRequest(BaseModel):
+    """Модель для запроса на пополнение баланса."""
+
+    amount: float = Field(..., gt=0, description="Сумма должна быть положительной")
+
+
+class RefillResponse(BaseModel):
+    """Модель для ответа на запрос на пополнение баланса."""
+
+    message: str = Field(..., description="Сообщение об успешном пополнении")
+    new_balance: float = Field(..., description="Новый баланс пользователя")

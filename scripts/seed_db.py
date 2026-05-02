@@ -25,7 +25,7 @@ async def seed_loyalty_levels():
         ]
         session.add_all(levels)
         await session.commit()
-        print("Loyalty levels успешено добавились в базу данных.")
+        print("Loyalty levels успешно добавились в базу данных.")
 
 
 if __name__ == "__main__":

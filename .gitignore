@@ -5,7 +5,6 @@
 .venv/
 env/
 venv/
-ENV/
 
 # Python: кэш, скомпилированные файлы
 __pycache__/
@@ -15,10 +14,14 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 
+# Celery
+celerybeat-schedule
+celerybeat-schedule.db
+celerybeat.pid
+
 # Временные файлы и логи
 temp/
 *.log
-SESSION_LOG_*.md
 
 # IDE
 .vscode/
@@ -26,3 +29,4 @@ SESSION_LOG_*.md
 
 # Системные файлы
 .DS_Store
+Thumbs.db

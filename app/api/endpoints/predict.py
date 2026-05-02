@@ -9,6 +9,7 @@ from app.models.prediction import PredictionStatus
 from app.models.user import User
 from app.repositories.prediction import PredictionRepository
 from app.schemas.health import HealthDataCreate, HealthPredictionRead
+from app.services.billing import BillingService
 from app.tasks.worker import compute_health_prediction
 
 router = APIRouter()
@@ -23,16 +24,22 @@ async def predict(
     ],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Предсказание вероятности наличия сердечно-сосудистых заболеваний."""
+    """Списывает средства и отправляет данные на предсказание."""
+    billing_service = BillingService(db)
     prediction_repo = PredictionRepository(db)
+
+    price_charged = await billing_service.charge_for_prediction(current_user.id)
+
     input_dict = data.model_dump()
 
     new_prediction = await prediction_repo.create(user_id=current_user.id, input_data=input_dict)
 
-    compute_health_prediction.delay(prediction_id=new_prediction.id, data=input_dict)
+    compute_health_prediction.delay(
+        prediction_id=new_prediction.id, data=input_dict, price=price_charged
+    )
 
     return HealthPredictionRead(
         prediction_id=new_prediction.id,
-        probability=None,
+        probability=0.9,
         status=PredictionStatus.PENDING,
     )

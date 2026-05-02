@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Float, ForeignKey, String
+from sqlalchemy import CheckConstraint, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimeStampMixin
@@ -15,6 +15,8 @@ class User(Base, TimeStampMixin):
     """Пользователи сервиса."""
 
     __tablename__ = "users"
+
+    __table_args__ = (CheckConstraint("balance >= 0", name="check_balance_positive"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True)

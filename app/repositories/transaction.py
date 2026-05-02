@@ -13,7 +13,7 @@ class TransactionRepository:
 
     async def create(self, user_id: int, amount: float, t_type: TransactionType) -> Transaction:
         """Создает запись о транзакции пользователя."""
-        query = select(User).where(User.id == user_id)
+        query = select(User).where(User.id == user_id).with_for_update()
         result = await self.session.execute(query)
         user = result.scalar_one_or_none()
         if not user:

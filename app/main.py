@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.api.endpoints import auth, predict
+from app.api.endpoints import auth, billing, predict
 from app.core.config import settings
 
 app = FastAPI(
@@ -20,6 +21,9 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Аутентификация"])
 app.include_router(predict.router, prefix="/api/predict", tags=["Предсказание"])
+app.include_router(billing.router, prefix="/api/billing", tags=["Биллинг"])
+
+Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/health", tags=["Системные"])

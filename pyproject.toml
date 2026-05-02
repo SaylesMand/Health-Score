@@ -22,6 +22,7 @@ dependencies = [
     "jwt>=1.4.0",
     "jose>=1.0.0",
     "python-multipart>=0.0.26",
+    "prometheus-fastapi-instrumentator>=7.1.0",
 ]
 
 [tool.ruff]
