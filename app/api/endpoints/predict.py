@@ -67,7 +67,9 @@ async def predict(
 
     price_charged = await billing.charge_for_prediction(user.id)
     input_dict = data.model_dump()
-    new_prediction = await predictions.add(user_id=user.id, input_data=input_dict)
+    new_prediction = await predictions.add(
+        user_id=user.id, input_data=input_dict, price_charged=price_charged
+    )
     await db.commit()
 
     try:

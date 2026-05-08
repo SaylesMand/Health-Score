@@ -25,6 +25,9 @@ class Settings(BaseSettings):
 
     LOYALTY_RECALC_DEBUG: bool = False
 
+    PREDICTION_STALE_AFTER_MINUTES: int = 5
+    WATCHDOG_INTERVAL_MINUTES: int = 1
+
     ADMIN_USERNAME: str | None = None
     ADMIN_EMAIL: str | None = None
     ADMIN_PASSWORD: str | None = None

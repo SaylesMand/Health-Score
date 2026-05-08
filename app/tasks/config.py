@@ -32,4 +32,8 @@ celery_app.conf.beat_schedule = {
         "task": "update_loyalty_levels",
         "schedule": loyalty_schedule,
     },
+    "cleanup-stale-predictions": {
+        "task": "cleanup_stale_predictions",
+        "schedule": crontab(minute=f"*/{settings.WATCHDOG_INTERVAL_MINUTES}"),
+    },
 }

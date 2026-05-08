@@ -1,7 +1,7 @@
 import enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Enum, Float, ForeignKey
+from sqlalchemy import JSON, Boolean, Enum, Float, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimeStampMixin
@@ -32,5 +32,6 @@ class Prediction(Base, TimeStampMixin):
         Enum(PredictionStatus), default=PredictionStatus.PENDING
     )
     price_charged: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    refunded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     user: Mapped["User"] = relationship(back_populates="predictions")

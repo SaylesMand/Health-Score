@@ -5,6 +5,7 @@ from typing import Annotated
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.endpoints.auth import get_current_user
@@ -113,20 +114,29 @@ async def solve_challenge(
         logger.info(f"Неверный ответ от user={current_user.id} на {request.challenge_id}")
         return ChallengeSolveResponse(correct=False, reward=0.0, message="Неверный ответ.")
 
-    if not await redis_client.delete(key):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Задача уже была решена.",
-        )
-
     reward = float(reward_str)
     user = await db.get(User, current_user.id, with_for_update=True)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден.")
     user.balance += reward
-    TransactionRepository(db).add(user_id=user.id, amount=reward, t_type=TransactionType.REFILL)
-    await db.commit()
+    TransactionRepository(db).add(
+        user_id=user.id,
+        amount=reward,
+        t_type=TransactionType.REFILL,
+        challenge_id=request.challenge_id,
+    )
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        await redis_client.delete(key)
+        logger.info(f"User={current_user.id}: повторная попытка solve {request.challenge_id}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Награда за эту задачу уже начислена.",
+        ) from None
 
+    await redis_client.delete(key)
     logger.info(f"User={user.id} решил {request.challenge_id}, награда={reward}")
     return ChallengeSolveResponse(
         correct=True,

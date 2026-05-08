@@ -1,6 +1,7 @@
 import streamlit as st
 
-from frontend.services.session import restore_token_from_cookie
+from frontend.services.session import get_profile, restore_token_from_cookie
+from frontend.ui.admin import render_admin_panel
 from frontend.ui.auth import render_sidebar_auth
 from frontend.ui.billing import render_balance
 from frontend.ui.gamification import render_gamification
@@ -22,6 +23,9 @@ def main() -> None:
     render_sidebar_auth()
 
     if st.session_state.get("token"):
+        profile = get_profile()
+        is_admin = (profile or {}).get("role") == "admin"
+
         render_balance()
         st.divider()
         render_history()
@@ -29,6 +33,9 @@ def main() -> None:
         render_predict_form()
         st.divider()
         render_gamification()
+        if is_admin:
+            st.divider()
+            render_admin_panel()
     else:
         st.info("👈 Пожалуйста, зарегистрируйтесь или войдите через боковое меню.")
 

@@ -1,117 +1,120 @@
 # Health Score API
 
-Масштабируемый ML-сервис для оценки риска сердечно-сосудистых заболеваний с системой биллинга и геймификацией.
+Асинхронный ML-сервис: оценка вероятности сердечно-сосудистых заболеваний по биометрии. С биллингом, ролями, геймификацией и атомарной защитой средств.
 
 УТП и финмодель: [BUSINESS_PLAN.md](BUSINESS_PLAN.md).
 
-## Технологический стек
+## Структура проекта
 
-* Язык: Python 3.12+
-* Framework: FastAPI
-* Database: PostgreSQL + SQLAlchemy 2.0 (Async)
-* Migrations: Alembic
-* ML: Scikit-learn / CatBoost (Inference)
-* Async Tasks: Celery + Redis
-* Monitoring: Prometheus + Grafana
-* DevOps: Docker (Multi-stage), Docker Compose
-* Package Manager: uv
+```
+.
+├── app/                     # Backend (FastAPI)
+│   ├── api/                 # Эндпоинты и зависимости (auth, predict, billing, gamification, admin)
+│   ├── core/                # Конфиг, БД, security
+│   ├── models/              # SQLAlchemy-модели
+│   ├── schemas/             # Pydantic-схемы
+│   ├── repositories/        # Доступ к БД
+│   ├── services/            # Бизнес-логика (биллинг)
+│   ├── ml/                  # Загрузка ML-моделей
+│   ├── tasks/               # Celery: воркер, beat, watchdog
+│   └── main.py              # Точка входа FastAPI
+├── frontend/                # Streamlit UI (auth, billing, predict, gamification, admin)
+├── alembic/                 # Миграции
+├── tests/                   # pytest + testcontainers + fakeredis
+├── scripts/                 # seed_db и утилиты
+├── grafana/                 # Provisioning datasource и дашборда
+├── docker-compose.yaml
+├── Dockerfile
+├── entrypoint.sh            # Миграции + seed + старт api
+└── pyproject.toml
+```
 
----
+## Стек
 
-## 1. Подготовка (Общий шаг)
+Python 3.11+, FastAPI, Pydantic v2, SQLAlchemy 2.0 (async), asyncpg, PostgreSQL 17, Alembic, Celery 5, Redis 7, scikit-learn, XGBoost, Streamlit, Prometheus, Grafana, Docker Compose, uv, pytest.
 
-Скопируйте пример конфига:
+## Подготовка
+
+Нужны Docker Desktop и Git. Для локального запуска без Docker - ещё [uv](https://docs.astral.sh/uv/).
+
 ```bash
+git clone <url>
+cd Health-Score
 cp .env.example .env
 ```
-Установите зависимости (для локальной работы):
+
+В `.env` обязательны: `POSTGRES_*`, `SECRET_KEY` (16+ символов). Для автосоздания админа - `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
+
+## Запуск через Docker
+
 ```bash
-uv sync
+docker compose up -d --build
 ```
 
----
+Контейнер `api` сам накатывает миграции и сидирует данные. После старта:
 
-## 2. Запуск приложения (Локально)
+| Сервис     | URL                            | Логин          |
+|------------|--------------------------------|----------------|
+| Swagger    | http://localhost:8000/docs     | -              |
+| Streamlit  | http://localhost:8501          | свой / админ   |
+| Prometheus | http://localhost:9090          | -              |
+| Grafana    | http://localhost:3000          | admin / admin  |
 
-### 2.1 Инфраструктура
-Запустите БД и Redis:
+Полная очистка (с данными БД): `docker compose down -v`.
+
+## Локальный запуск
+
 ```bash
-docker-compose up -d db redis
-```
-
-### 2.2 База данных
-Накатите миграции и базовые данные:
-```bash
+docker compose up -d db redis
+uv sync --all-groups
 uv run alembic upgrade head
-
-# Windows (PowerShell)
-$env:PYTHONPATH="."; uv run python scripts/seed_db.py
-
-# Linux/macOS
-PYTHONPATH=. uv run python scripts/seed_db.py
+PYTHONPATH=. uv run python scripts/seed_db.py    # PowerShell: $env:PYTHONPATH="."; uv run python scripts/seed_db.py
 ```
 
-### 2.3 Запуск сервисов
-В разных окнах терминала:
+В трёх терминалах:
+
 ```bash
-# API
 uv run uvicorn app.main:app --reload
-
-# Worker
 uv run celery -A app.tasks.config.celery_app worker --loglevel=info -P solo
-
-# Beat
 uv run celery -A app.tasks.config.celery_app beat --loglevel=info
 ```
 
----
+UI отдельно: `uv run streamlit run frontend/main.py`.
 
-## 3. Запуск в Docker (Full Stack)
+## Эндпоинты
 
-### 3.1 Запуск одной командой
-```bash
-docker-compose up -d --build
-```
+| Метод | Путь                                  | Назначение                              |
+|-------|---------------------------------------|-----------------------------------------|
+| POST  | /api/auth/register                    | Регистрация (welcome-бонус 200 кр)      |
+| POST  | /api/auth/login                       | Логин, выдача JWT                       |
+| GET   | /api/auth/me                          | Профиль                                 |
+| GET   | /api/billing/balance                  | Баланс и уровень лояльности             |
+| POST  | /api/billing/refill                   | Самостоятельное пополнение              |
+| POST  | /api/predict/predict                  | Заказать ML-предсказание                |
+| GET   | /api/predict/history                  | История предсказаний                    |
+| POST  | /api/gamification/generate_challenge  | Получить математическую задачу          |
+| POST  | /api/gamification/solve               | Сдать ответ, получить бонус             |
+| GET   | /api/admin/users                      | (admin) Список пользователей            |
+| POST  | /api/admin/users/{id}/refill          | (admin) Принудительное пополнение       |
 
-При первом старте контейнер `api` автоматически:
-1. Дожидается готовности `db` и `redis`.
-2. Накатывает миграции `alembic upgrade head`.
-3. Запускает `scripts/seed_db.py` (идемпотентно создаёт уровни лояльности и опционально админа из `ADMIN_*`).
-4. Стартует `uvicorn`.
+Полные схемы - в Swagger.
 
-`worker` и `beat` ждут `api: service_healthy`, поэтому они не пытаются мигрировать сами и стартуют только после готовности схемы.
+## Тесты
 
-API: http://localhost:8000
-UI-дашборд: http://localhost:8501
-
-> Расписание пересчёта уровней лояльности - 1-го числа каждого месяца в 00:00 UTC.
-> Для отладочного режима (раз в минуту) выставьте `LOYALTY_RECALC_DEBUG=true` в `.env`.
-
----
-
-## Основные эндпоинты
-
-* Аутентификация: /api/auth/register, /api/auth/login
-* ML Предсказание: /api/predict/predict
-* Биллинг: /api/billing/balance, /api/billing/refill
-* Геймификация: /api/gamification/generate_challenge, /api/gamification/solve
-* Мониторинг:
-    * http://localhost:9090 (Prometheus)
-    * http://localhost:3000 (Grafana, login: `admin` / `admin`)
-        * Datasource Prometheus и дашборд **Health Score API** провижинятся автоматически из `grafana/`.
-
----
-
-## 4. Тесты
-
-Зависимости тестов установятся вместе с dev-группой:
-```bash
-uv sync --all-groups
-```
-
-Запуск (требуется доступный Docker для testcontainers с Postgres):
 ```bash
 uv run pytest
 ```
 
-Покрытие отчитывается в терминал, порог `--cov-fail-under=70` зашит в `pyproject.toml`.
+testcontainers поднимает Postgres на сессию, fakeredis заменяет Redis, Celery `delay()` подменяется на синхронный вызов в `ThreadPoolExecutor`. Порог покрытия 70 процентов зашит в `pyproject.toml`.
+
+Что покрывают тесты:
+
+- `test_auth_api.py` - регистрация, дубликаты, логин, `/me`, JWT.
+- `test_billing_api.py`, `test_billing_service.py` - чарж, refund, refill, скидки, FOR UPDATE.
+- `test_predict_api.py` - списание + постановка задачи, 402, история, гейтинг тарифов.
+- `test_gamification_api.py` - задачи, проверка ответа, лимит 20/час, защита от двойного начисления.
+- `test_admin_api.py` - `require_admin`, список пользователей, refill.
+- `test_loyalty_worker.py` - пересчёт уровней по тратам за 30 дней.
+- `test_schemas.py`, `test_security.py` - Pydantic-валидация, хеш пароля, JWT.
+
+Итог: **54 теста, покрытие 75.77%** (порог 70%).

@@ -15,12 +15,15 @@ class PredictionRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def add(self, user_id: int, input_data: dict[str, Any]) -> Prediction:
+    async def add(
+        self, user_id: int, input_data: dict[str, Any], price_charged: float
+    ) -> Prediction:
         """Добавляет запись со статусом pending и делает flush, чтобы получить id."""
         prediction = Prediction(
             user_id=user_id,
             input_data=input_data,
             status=PredictionStatus.PENDING,
+            price_charged=price_charged,
         )
         self.session.add(prediction)
         await self.session.flush()
@@ -34,9 +37,7 @@ class PredictionRepository:
         )
         return result.scalar_one_or_none()
 
-    async def update_result(
-        self, prediction_id: int, result: float, price_charged: float
-    ) -> Prediction | None:
+    async def update_result(self, prediction_id: int, result: float) -> Prediction | None:
         """Идемпотентно сохраняет результат: повторный вызов на COMPLETED - no-op."""
         prediction = await self.get_by_id(prediction_id)
         if prediction is None:
@@ -46,7 +47,6 @@ class PredictionRepository:
             logger.info(f"Prediction id={prediction_id} уже COMPLETED - пропуск")
             return prediction
         prediction.result = result
-        prediction.price_charged = price_charged
         prediction.status = PredictionStatus.COMPLETED
         await self.session.commit()
         return prediction
