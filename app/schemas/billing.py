@@ -10,8 +10,8 @@ class LoyaltyLevelRead(BaseModel):
 
     id: int = Field(..., description="Уникальный идентификатор уровня лояльности")
     name: str = Field(..., description="Название уровня лояльности")
-    discount_percent: float = Field(..., description="Процент скидки")
-    threshold_requests: int = Field(..., description="Порог по количеству запросов")
+    discount_rate: float = Field(..., ge=0, le=1, description="Доля скидки (0..1)")
+    min_spend: float = Field(..., ge=0, description="Минимальная сумма трат для уровня")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -46,3 +46,10 @@ class RefillResponse(BaseModel):
 
     message: str = Field(..., description="Сообщение об успешном пополнении")
     new_balance: float = Field(..., description="Новый баланс пользователя")
+
+
+class BalanceRead(BaseModel):
+    """Модель для ответа на запрос баланса."""
+
+    balance: float = Field(..., description="Текущий баланс пользователя")
+    loyalty_level: str = Field(..., description="Текущий уровень лояльности")

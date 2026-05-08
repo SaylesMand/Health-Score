@@ -1,33 +1,23 @@
-from sqlalchemy import select
+import logging
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.transaction import Transaction, TransactionType
-from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 class TransactionRepository:
-    """Репозиторий для учета всех финансовых операций (биллинг)."""
+    """Репозиторий для учёта финансовых операций."""
 
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create(self, user_id: int, amount: float, t_type: TransactionType) -> Transaction:
-        """Создает запись о транзакции пользователя."""
-        query = select(User).where(User.id == user_id).with_for_update()
-        result = await self.session.execute(query)
-        user = result.scalar_one_or_none()
-        if not user:
-            return
-
+    def add(self, user_id: int, amount: float, t_type: TransactionType) -> Transaction:
+        """Добавляет запись о транзакции в текущую сессию."""
         db_transaction = Transaction(user_id=user_id, amount=amount, transaction_type=t_type)
         self.session.add(db_transaction)
-
-        if t_type == TransactionType.REFILL:
-            user.balance += amount
-        elif t_type == TransactionType.PAYMENT:
-            user.balance -= amount
-
-        await self.session.commit()
-        await self.session.refresh(db_transaction)
-
+        logger.info(
+            f"Транзакция подготовлена: user_id={user_id}, type={t_type.value}, amount={amount}"
+        )
         return db_transaction

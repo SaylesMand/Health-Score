@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Sequence
 
 from sqlalchemy import select
@@ -5,54 +6,68 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.prediction import Prediction, PredictionStatus
 
+logger = logging.getLogger(__name__)
+
 
 class PredictionRepository:
-    """Репозиторий для работы с предсказаниями в базе данных."""
+    """Репозиторий предсказаний."""
 
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create(self, user_id: int, input_data: dict[str, Any]) -> Prediction:
-        """Создает новое предсказание в статусе pending."""
-        db_prediction = Prediction(
-            user_id=user_id, input_data=input_data, status=PredictionStatus.PENDING
+    async def add(self, user_id: int, input_data: dict[str, Any]) -> Prediction:
+        """Добавляет запись со статусом pending и делает flush, чтобы получить id."""
+        prediction = Prediction(
+            user_id=user_id,
+            input_data=input_data,
+            status=PredictionStatus.PENDING,
         )
-        self.session.add(db_prediction)
-        await self.session.commit()
-
-        await self.session.refresh(db_prediction)
-
-        return db_prediction
+        self.session.add(prediction)
+        await self.session.flush()
+        logger.info(f"Prediction подготовлено: id={prediction.id}, user={user_id}")
+        return prediction
 
     async def get_by_id(self, prediction_id: int) -> Prediction | None:
-        """Получает детали предсказания по ID."""
-        query = select(Prediction).where(Prediction.id == prediction_id)
-        result = await self.session.execute(query)
+        """Получает предсказание по ID."""
+        result = await self.session.execute(
+            select(Prediction).where(Prediction.id == prediction_id)
+        )
         return result.scalar_one_or_none()
 
     async def update_result(
         self, prediction_id: int, result: float, price_charged: float
     ) -> Prediction | None:
-        """Обновляет результат предсказания."""
-        db_prediction = await self.get_by_id(prediction_id)
-        if not db_prediction:
-            return
-
-        db_prediction.result = result
-        db_prediction.price_charged = price_charged
-        db_prediction.status = PredictionStatus.COMPLETED
-
+        """Идемпотентно сохраняет результат: повторный вызов на COMPLETED - no-op."""
+        prediction = await self.get_by_id(prediction_id)
+        if prediction is None:
+            logger.error(f"Prediction id={prediction_id} не найден при update_result")
+            return None
+        if prediction.status == PredictionStatus.COMPLETED:
+            logger.info(f"Prediction id={prediction_id} уже COMPLETED - пропуск")
+            return prediction
+        prediction.result = result
+        prediction.price_charged = price_charged
+        prediction.status = PredictionStatus.COMPLETED
         await self.session.commit()
-        await self.session.refresh(db_prediction)
-
-        return db_prediction
+        return prediction
 
     async def get_user_history(self, user_id: int) -> Sequence[Prediction]:
         """Получает историю предсказаний пользователя."""
-        query = (
+        result = await self.session.execute(
             select(Prediction)
             .where(Prediction.user_id == user_id)
             .order_by(Prediction.created_at.desc())
         )
-        result = await self.session.execute(query)
         return result.scalars().all()
+
+    async def update_status(
+        self, prediction_id: int, status: PredictionStatus
+    ) -> Prediction | None:
+        """Идемпотентно сохраняет статус."""
+        prediction = await self.get_by_id(prediction_id)
+        if prediction is None:
+            logger.error(f"Prediction id={prediction_id} не найден при update_status")
+            return None
+        prediction.status = status
+        await self.session.commit()
+        return prediction

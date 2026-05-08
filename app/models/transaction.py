@@ -15,6 +15,7 @@ class TransactionType(enum.StrEnum):
 
     REFILL = "refill"
     PAYMENT = "payment"
+    REFUND = "refund"
 
 
 class Transaction(Base, TimeStampMixin):

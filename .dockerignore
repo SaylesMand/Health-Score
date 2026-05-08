@@ -1,25 +1,66 @@
 # Git
-.git
+.git/
 .gitignore
+.gitattributes
 
 # Виртуальные окружения
-.venv
-venv
-env
+.venv/
+venv/
+env/
 
-# Python кэш
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+*.egg-info/
+dist/
+build/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
 
-# Среды разработки
+# IDE
 .vscode/
 .idea/
+*.swp
 
 # Секреты и локальные конфиги
 .env
-# Временные файлы
+.env.*
+!.env.example
+
+# Логи и временные файлы
+logs/
+*.log
 temp/
+tmp/
+
+# Celery
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat.pid
+
+# Docker-метаданные
+Dockerfile
+.dockerignore
+docker-compose.yaml
+docker-compose.*.yaml
+docker-compose.*.yml
+
+# Документация
+*.md
+docs/
+
+# Тесты
+tests/
+
+# ОС
+.DS_Store
+Thumbs.db
+
+# Конфиг мониторинга
+prometheus.yml

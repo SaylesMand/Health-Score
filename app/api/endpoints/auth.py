@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from typing import Annotated
 
@@ -13,6 +14,8 @@ from app.models.user import User
 from app.repositories.user import UserRepository
 from app.schemas.user import Token, TokenData, UserCreate, UserRead
 
+logger = logging.getLogger(__name__)
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
@@ -26,6 +29,7 @@ async def register(user_in: UserCreate, db: Annotated[AsyncSession, Depends(get_
 
     user_by_email = await user_repo.get_by_email(user_in.email)
     if user_by_email:
+        logger.warning(f"Ошибка регистрации: Email {user_in.email} уже занят")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Пользователь с таким email уже существует.",
@@ -33,12 +37,15 @@ async def register(user_in: UserCreate, db: Annotated[AsyncSession, Depends(get_
 
     user_by_username = await user_repo.get_by_username(user_in.username)
     if user_by_username:
+        logger.warning(f"Ошибка регистрации: Имя пользователя {user_in.username} уже занято")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Пользователь с таким username уже существует.",
         )
 
-    return await user_repo.create(user_in)
+    user = await user_repo.create(user_in)
+    logger.info(f"Пользователь успешно зарегистрирован: {user.username}")
+    return user
 
 
 @router.post("/login", response_model=Token)
@@ -52,6 +59,7 @@ async def login(
     user = await user_repo.get_by_username(form_data.username)
 
     if not user or not verify_password(form_data.password, user.hashed_password):
+        logger.warning(f"Ошибка входа для пользователя: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверное имя пользователя или пароль.",
@@ -62,6 +70,7 @@ async def login(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
+    logger.info(f"Пользователь успешно вошел в систему: {user.username}")
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -89,3 +98,9 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+@router.get("/me", response_model=UserRead)
+async def get_profile(current_user: Annotated[User, Depends(get_current_user)]):
+    """Получение профиля текущего пользователя."""
+    return current_user

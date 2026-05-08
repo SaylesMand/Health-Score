@@ -1,32 +1,47 @@
 # Секреты
 .env
+.env.*
+!.env.example
 
-# Виртуальное окружение
+# Виртуальные окружения
 .venv/
-env/
 venv/
+env/
 
-# Python: кэш, скомпилированные файлы
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+*.egg-info/
+dist/
+build/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # Celery
 celerybeat-schedule
-celerybeat-schedule.db
+celerybeat-schedule.*
 celerybeat.pid
 
-# Временные файлы и логи
-temp/
+# Логи и временные файлы
+logs/
 *.log
+temp/
+tmp/
 
 # IDE
 .vscode/
 .idea/
+*.swp
 
-# Системные файлы
+# ОС
 .DS_Store
 Thumbs.db
+
+# uv
+.python-version

@@ -15,15 +15,21 @@ celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",
-    timezone="Europe/Moscow",
+    timezone="UTC",
     enable_utc=True,
     task_acks_late=True,
     worker_prefetch_multiplier=2,
+    task_reject_on_worker_lost=True,
 )
 
+if settings.LOYALTY_RECALC_DEBUG:
+    loyalty_schedule = crontab(minute="*")
+else:
+    loyalty_schedule = crontab(minute="0", hour="0", day_of_month="1")
+
 celery_app.conf.beat_schedule = {
-    "every-minute-loyalty-update": {
+    "monthly-loyalty-recalc": {
         "task": "update_loyalty_levels",
-        "schedule": crontab(minute="*"),
+        "schedule": loyalty_schedule,
     },
 }

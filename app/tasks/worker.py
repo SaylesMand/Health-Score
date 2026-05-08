@@ -1,39 +1,59 @@
 import asyncio
-import secrets
+import logging
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 
 from app.core.database import async_session_maker
+from app.ml.model import ml_model
 from app.models.loyalty_level import LoyaltyLevel
+from app.models.prediction import PredictionStatus
 from app.models.transaction import Transaction, TransactionType
 from app.models.user import User
 from app.repositories.prediction import PredictionRepository
 from app.tasks.config import celery_app
 
-
-@celery_app.task(name="compute_health_prediction")
-def compute_health_prediction(prediction_id: int, data: dict, price: float):
-    """Фоновая задача для ML-предсказания."""
-    return asyncio.run(_run_prediction_logic(prediction_id, data, price))
+logger = logging.getLogger(__name__)
 
 
-async def _run_prediction_logic(prediction_id: int, data: dict, price: float) -> None:
-    await asyncio.sleep(2)
-    probability = secrets.randbelow(100) / 100.0
+@celery_app.task(name="compute_health_prediction", bind=True, max_retries=3)
+def compute_health_prediction(
+    self, prediction_id: int, data: dict, price: float, loyalty_level: str = "Bronze"
+):
+    """Фоновая задача ML-предсказания."""
+    logger.info(f"Старт ML-предсказания: prediction_id={prediction_id}, level={loyalty_level}")
+    try:
+        return asyncio.run(_run_prediction_logic(prediction_id, data, price, loyalty_level))
+    except Exception as exc:
+        logger.exception(f"Сбой задачи prediction_id={prediction_id}: {exc}")
+        raise self.retry(exc=exc, countdown=10) from exc
+
+
+async def _run_prediction_logic(
+    prediction_id: int, data: dict, price: float, loyalty_level: str
+) -> float | None:
+    try:
+        probability = ml_model.predict_probability(data, loyalty_level)
+    except Exception:
+        async with async_session_maker() as session:
+            await PredictionRepository(session).update_status(
+                prediction_id, PredictionStatus.FAILED
+            )
+        raise
 
     async with async_session_maker() as session:
-        repo = PredictionRepository(session)
-        await repo.update_result(
-            prediction_id=prediction_id, probability=probability, price_charged=price
+        await PredictionRepository(session).update_result(
+            prediction_id=prediction_id, result=probability, price_charged=price
         )
-
     return probability
 
 
 @celery_app.task(name="update_loyalty_levels")
 def update_loyalty_levels():
-    """Перерасчет уровней лояльности."""
-    return asyncio.run(_run_loyalty_update())
+    """Ежемесячный пересчёт уровней лояльности."""
+    logger.info("Старт пересчёта уровней лояльности")
+    asyncio.run(_run_loyalty_update())
+    logger.info("Пересчёт уровней завершён")
 
 
 async def _run_loyalty_update():
@@ -42,15 +62,19 @@ async def _run_loyalty_update():
             select(LoyaltyLevel).order_by(LoyaltyLevel.min_spend.desc())
         )
         levels = levels_res.scalars().all()
+        if not levels:
+            logger.warning("Уровни лояльности не сидированы - задача пропущена")
+            return
 
-        users_res = await session.execute(select(User))
-        users = users_res.scalars().all()
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
 
-        for user in users:
+        users_res = await session.execute(select(User).with_for_update())
+        for user in users_res.scalars():
             spend_res = await session.execute(
                 select(func.sum(Transaction.amount)).where(
                     Transaction.user_id == user.id,
                     Transaction.transaction_type == TransactionType.PAYMENT,
+                    Transaction.created_at >= thirty_days_ago,
                 )
             )
             total_spent = spend_res.scalar() or 0.0
@@ -62,6 +86,10 @@ async def _run_loyalty_update():
                     break
 
             if new_level_id != user.loyalty_level_id:
+                logger.info(
+                    f"User {user.id}: уровень {user.loyalty_level_id} -> {new_level_id} "
+                    f"(потрачено за 30д: {total_spent})"
+                )
                 user.loyalty_level_id = new_level_id
 
         await session.commit()

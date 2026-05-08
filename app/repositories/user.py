@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +8,8 @@ from app.core.security import get_password_hash
 from app.models.loyalty_level import LoyaltyLevel
 from app.models.user import User
 from app.schemas.user import UserCreate
+
+logger = logging.getLogger(__name__)
 
 
 class UserRepository:
@@ -20,6 +24,7 @@ class UserRepository:
         result = await self.session.execute(query)
         loyalty_level = result.scalar_one_or_none()
         if not loyalty_level:
+            logger.error("Ошибка БД: Базовый уровень лояльности 'Bronze' не найден")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Базовый уровень лояльности не найден.",
@@ -35,6 +40,9 @@ class UserRepository:
         self.session.add(db_user)
         await self.session.commit()
         await self.session.refresh(db_user)
+
+        logger.info(f"Пользователь создан в БД: ID={db_user.id}, Имя={db_user.username}")
+
         return db_user
 
     async def get_by_id(self, user_id: int) -> User | None:

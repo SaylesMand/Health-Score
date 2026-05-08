@@ -7,10 +7,33 @@ services:
       - .env
     ports:
       - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+    networks:
+      - ml_network
+
+  frontend:
+    build: .
+    container_name: health_score_frontend
+    restart: unless-stopped
+    environment:
+      API_URL: "http://api:8000/api"
+    command: ["streamlit", "run", "frontend/main.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true", "--browser.gatherUsageStats=false"]
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
         condition: service_healthy
     networks:
       - ml_network
@@ -21,7 +44,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    command: ["celery", "-A", "app.tasks.config.celery_app", "worker", "--loglevel=info"]
+    command: ["celery", "-A", "app.tasks.config.celery_app", "worker", "--loglevel=info", "-P", "threads", "--concurrency=2"]
+    volumes:
+      - ./logs:/app/logs
     depends_on:
       api:
         condition: service_started
@@ -29,6 +54,23 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
+    networks:
+      - ml_network
+
+  beat:
+    build: .
+    container_name: health_score_beat
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ["celery", "-A", "app.tasks.config.celery_app", "beat", "--loglevel=info"]
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
     networks:
       - ml_network
 
