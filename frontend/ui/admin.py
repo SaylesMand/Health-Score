@@ -11,6 +11,11 @@ def render_admin_panel() -> None:
     """Админ-панель: список пользователей и принудительное пополнение баланса."""
     st.subheader("🛠 Админ-панель")
 
+    msg = st.session_state.pop("admin_refill_msg", None)
+    if msg:
+        msg_type, text = msg
+        (st.success if msg_type == "success" else st.error)(text)
+
     res = api_client.get("/admin/users")
     if not res.ok:
         st.error(res.error or "Не удалось загрузить список пользователей.")
@@ -43,15 +48,21 @@ def render_admin_panel() -> None:
     with st.form("admin_refill_form"):
         label = st.selectbox("Пользователь", list(options.keys()))
         amount = st.number_input("Сумма", min_value=1.0, max_value=100000.0, value=100.0, step=10.0)
-        if st.form_submit_button("Пополнить"):
-            user_id = options[label]
-            resp = api_client.post(f"/admin/users/{user_id}/refill", json_data={"amount": amount})
-            if not resp.ok:
-                st.error(resp.error or f"Ошибка: {resp.status_code}")
-                return
+        if not st.form_submit_button("Пополнить"):
+            return
+
+        user_id = options[label]
+        resp = api_client.post(f"/admin/users/{user_id}/refill", json_data={"amount": amount})
+        if resp.ok:
             invalidate_balance()
-            st.success(
+            st.session_state.admin_refill_msg = (
+                "success",
                 f"Баланс пользователя {label} пополнен. "
-                f"Новый баланс: {(resp.data or {}).get('new_balance')}"
+                f"Новый баланс: {(resp.data or {}).get('new_balance')}",
             )
-            st.rerun()
+        else:
+            st.session_state.admin_refill_msg = (
+                "error",
+                resp.error or f"Ошибка: {resp.status_code}",
+            )
+        st.rerun()
