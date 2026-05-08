@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.api.endpoints import auth, billing, gamification, predict
+from app.api.endpoints import admin, auth, billing, gamification, predict
 from app.core.config import settings
 from app.core.logging import setup_logging
 
@@ -26,6 +26,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Аутентифик�
 app.include_router(predict.router, prefix="/api/predict", tags=["Предсказание"])
 app.include_router(billing.router, prefix="/api/billing", tags=["Биллинг"])
 app.include_router(gamification.router, prefix="/api/gamification", tags=["Геймификация"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Админ"])
 
 
 Instrumentator().instrument(app).expose(app)

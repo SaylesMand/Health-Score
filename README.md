@@ -2,6 +2,8 @@
 
 Масштабируемый ML-сервис для оценки риска сердечно-сосудистых заболеваний с системой биллинга и геймификацией.
 
+УТП и финмодель: [BUSINESS_PLAN.md](BUSINESS_PLAN.md).
+
 ## Технологический стек
 
 * Язык: Python 3.12+
@@ -66,22 +68,21 @@ uv run celery -A app.tasks.config.celery_app beat --loglevel=info
 
 ## 3. Запуск в Docker (Full Stack)
 
-### 3.1 Запуск контейнеров
-Запуск всех сервисов (api, frontend, worker, beat, db, redis, prometheus, grafana):
+### 3.1 Запуск одной командой
 ```bash
 docker-compose up -d --build
 ```
 
+При первом старте контейнер `api` автоматически:
+1. Дожидается готовности `db` и `redis`.
+2. Накатывает миграции `alembic upgrade head`.
+3. Запускает `scripts/seed_db.py` (идемпотентно создаёт уровни лояльности и опционально админа из `ADMIN_*`).
+4. Стартует `uvicorn`.
+
+`worker` и `beat` ждут `api: service_healthy`, поэтому они не пытаются мигрировать сами и стартуют только после готовности схемы.
+
+API: http://localhost:8000
 UI-дашборд: http://localhost:8501
-
-### 3.2 База данных (Внутри контейнера)
-Контейнеры запущены, но база пуста. Выполните миграции внутри запущенного контейнера API:
-```bash
-docker exec -it health_score_api alembic upgrade head
-docker exec -it health_score_api python scripts/seed_db.py
-```
-
-API доступно: http://localhost:8000
 
 > Расписание пересчёта уровней лояльности - 1-го числа каждого месяца в 00:00 UTC.
 > Для отладочного режима (раз в минуту) выставьте `LOYALTY_RECALC_DEBUG=true` в `.env`.
@@ -96,4 +97,21 @@ API доступно: http://localhost:8000
 * Геймификация: /api/gamification/generate_challenge, /api/gamification/solve
 * Мониторинг:
     * http://localhost:9090 (Prometheus)
-    * http://localhost:3000 (Grafana)
+    * http://localhost:3000 (Grafana, login: `admin` / `admin`)
+        * Datasource Prometheus и дашборд **Health Score API** провижинятся автоматически из `grafana/`.
+
+---
+
+## 4. Тесты
+
+Зависимости тестов установятся вместе с dev-группой:
+```bash
+uv sync --all-groups
+```
+
+Запуск (требуется доступный Docker для testcontainers с Postgres):
+```bash
+uv run pytest
+```
+
+Покрытие отчитывается в терминал, порог `--cov-fail-under=70` зашит в `pyproject.toml`.

@@ -31,8 +31,11 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 COPY --chown=appuser:appuser . .
 
+RUN chmod +x /app/entrypoint.sh
+
 USER appuser
 
 EXPOSE  8000
 
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

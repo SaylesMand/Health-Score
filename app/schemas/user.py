@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.models.user import UserRole
+
 
 class UserBase(BaseModel):
     """Базовая модель пользователя."""
@@ -22,6 +24,7 @@ class UserRead(UserBase):
     id: int = Field(..., description="Уникальный идентификатор пользователя")
     balance: float = Field(..., description="Баланс пользователя")
     loyalty_level_id: int = Field(..., description="Уровень лояльности пользователя")
+    role: UserRole = Field(..., description="Роль пользователя")
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      RUN_MIGRATIONS: "1"
     ports:
       - "8000:8000"
     volumes:
@@ -14,7 +16,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy
@@ -49,7 +51,7 @@ services:
       - ./logs:/app/logs
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
       db:
@@ -63,7 +65,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    command: ["celery", "-A", "app.tasks.config.celery_app", "beat", "--loglevel=info"]
+    command: ["celery", "-A", "app.tasks.config.celery_app", "beat", "--loglevel=info", "--schedule=/tmp/celerybeat-schedule"]
     volumes:
       - ./logs:/app/logs
     depends_on:
@@ -91,6 +93,14 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
     networks:
@@ -132,6 +142,7 @@ services:
 
 volumes:
   postgres_data:
+  grafana_data:
 
 networks:
   ml_network:

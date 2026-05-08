@@ -25,6 +25,10 @@ class Settings(BaseSettings):
 
     LOYALTY_RECALC_DEBUG: bool = False
 
+    ADMIN_USERNAME: str | None = None
+    ADMIN_EMAIL: str | None = None
+    ADMIN_PASSWORD: str | None = None
+
     @property
     def DATABASE_URL(self) -> str:
         """Строка подключения к базе данных."""
