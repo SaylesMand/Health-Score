@@ -14,7 +14,7 @@ async def test_admin_can_list_users(client, registered_user, admin_user):
 
 
 async def test_admin_refill_increases_target_balance(client, registered_user, admin_user):
-    """Админ может пополнить баланс другого пользователя."""
+    """Админ может пополнить баланс другого пользователя поверх welcome-бонуса."""
     target_id = registered_user["user"]["id"]
     res = await client.post(
         f"/api/admin/users/{target_id}/refill",
@@ -22,7 +22,7 @@ async def test_admin_refill_increases_target_balance(client, registered_user, ad
         headers=admin_user["auth"],
     )
     assert res.status_code == 200
-    assert res.json()["new_balance"] == 333.0
+    assert res.json()["new_balance"] == 533.0
 
 
 async def test_admin_refill_404_on_unknown_user(client, admin_user):

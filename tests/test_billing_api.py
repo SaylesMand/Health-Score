@@ -1,22 +1,22 @@
-async def test_balance_returns_zero_after_register(client, registered_user):
-    """Свежезарегистрированный пользователь имеет нулевой баланс."""
+async def test_balance_after_register_includes_welcome_bonus(client, registered_user):
+    """Свежезарегистрированный пользователь получает welcome-бонус."""
     res = await client.get("/api/billing/balance", headers=registered_user["auth"])
     assert res.status_code == 200
     body = res.json()
-    assert body["balance"] == 0.0
+    assert body["balance"] == 200.0
     assert body["loyalty_level"] == "Bronze"
 
 
 async def test_refill_increases_balance(client, registered_user):
-    """Refill пополняет баланс и возвращает новое значение."""
+    """Refill пополняет баланс поверх welcome-бонуса."""
     res = await client.post(
         "/api/billing/refill", json={"amount": 250}, headers=registered_user["auth"]
     )
     assert res.status_code == 200
-    assert res.json()["new_balance"] == 250.0
+    assert res.json()["new_balance"] == 450.0
 
     res = await client.get("/api/billing/balance", headers=registered_user["auth"])
-    assert res.json()["balance"] == 250.0
+    assert res.json()["balance"] == 450.0
 
 
 async def test_refill_rejects_negative_amount(client, registered_user):

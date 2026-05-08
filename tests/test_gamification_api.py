@@ -41,7 +41,7 @@ async def test_solve_correct_answer_credits_user(client, registered_user, _fake_
     assert body["reward"] == challenge["reward"]
 
     bal = await client.get("/api/billing/balance", headers=registered_user["auth"])
-    assert bal.json()["balance"] == challenge["reward"]
+    assert bal.json()["balance"] == 200.0 + challenge["reward"]
 
 
 async def test_solve_wrong_answer_returns_correct_false(client, registered_user):

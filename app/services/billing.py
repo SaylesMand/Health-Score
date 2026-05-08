@@ -16,6 +16,7 @@ class BillingService:
     """Сервис финансовых операций (биллинг)."""
 
     BASE_PREDICTION_PRICE = 100.0
+    WELCOME_BONUS = 200.0
 
     def __init__(self, session: AsyncSession):
         self.session = session

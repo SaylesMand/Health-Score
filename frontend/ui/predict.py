@@ -13,6 +13,15 @@ _STATUS_COLOR = {"completed": "green", "pending": "orange", "failed": "red"}
 def render_history() -> None:
     """История прогнозов пользователя."""
     st.subheader("📜 История прогнозов")
+    st.markdown(
+        "<style>"
+        "[data-testid='stDataFrame'] [role='columnheader'] {"
+        " text-align: center;"
+        " justify-content: center;"
+        "}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
     if st.button("🔄 Обновить статус прогнозов"):
         st.rerun()
 

@@ -38,7 +38,10 @@ def login(token: str) -> None:
 
 def logout() -> None:
     """Удаляет токен и состояние пользователя."""
-    _cookie_controller.remove(COOKIE_NAME)
+    try:
+        _cookie_controller.remove(COOKIE_NAME)
+    except KeyError:
+        pass
     st.session_state.token = None
     _clear_user_state()
 

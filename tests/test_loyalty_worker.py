@@ -55,12 +55,14 @@ async def add_payment(engine):
 
 
 async def test_loyalty_recalc_promotes_to_silver(engine, monkeypatch, make_user, add_payment):
-    """Пользователь с тратами >=100 за 30 дней становится Silver."""
+    """Пользователь с тратами >=500 за 30 дней становится Silver."""
     monkeypatch.setattr(
-        worker_module, "async_session_maker", async_sessionmaker(engine, expire_on_commit=False)
+        worker_module,
+        "async_session_maker",
+        async_sessionmaker(engine, expire_on_commit=False),
     )
     user_id = await make_user(loyalty_id=1)
-    await add_payment(user_id, 150, days_ago=5)
+    await add_payment(user_id, 600, days_ago=5)
 
     await worker_module._run_loyalty_update()
 
@@ -71,12 +73,14 @@ async def test_loyalty_recalc_promotes_to_silver(engine, monkeypatch, make_user,
 
 
 async def test_loyalty_recalc_promotes_to_gold(engine, monkeypatch, make_user, add_payment):
-    """Пользователь с тратами >=500 за 30 дней становится Gold."""
+    """Пользователь с тратами >=1000 за 30 дней становится Gold."""
     monkeypatch.setattr(
-        worker_module, "async_session_maker", async_sessionmaker(engine, expire_on_commit=False)
+        worker_module,
+        "async_session_maker",
+        async_sessionmaker(engine, expire_on_commit=False),
     )
     user_id = await make_user(loyalty_id=1)
-    await add_payment(user_id, 600, days_ago=5)
+    await add_payment(user_id, 1500, days_ago=5)
 
     await worker_module._run_loyalty_update()
 
@@ -89,10 +93,12 @@ async def test_loyalty_recalc_promotes_to_gold(engine, monkeypatch, make_user, a
 async def test_loyalty_recalc_demotes_inactive_user(engine, monkeypatch, make_user, add_payment):
     """Пользователь без трат за 30 дней откатывается в Bronze."""
     monkeypatch.setattr(
-        worker_module, "async_session_maker", async_sessionmaker(engine, expire_on_commit=False)
+        worker_module,
+        "async_session_maker",
+        async_sessionmaker(engine, expire_on_commit=False),
     )
     user_id = await make_user(loyalty_id=3)
-    await add_payment(user_id, 1000, days_ago=60)
+    await add_payment(user_id, 1500, days_ago=60)
 
     await worker_module._run_loyalty_update()
 

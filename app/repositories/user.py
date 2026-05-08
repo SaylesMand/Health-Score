@@ -7,8 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_password_hash
 from app.models.loyalty_level import LoyaltyLevel
+from app.models.transaction import Transaction, TransactionType
 from app.models.user import User
 from app.schemas.user import UserCreate
+from app.services.billing import BillingService
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +39,25 @@ class UserRepository:
             email=user_in.email,
             hashed_password=hashed_pwd,
             loyalty_level_id=loyalty_level.id,
+            balance=BillingService.WELCOME_BONUS,
         )
         self.session.add(db_user)
+        await self.session.flush()
+
+        self.session.add(
+            Transaction(
+                user_id=db_user.id,
+                amount=BillingService.WELCOME_BONUS,
+                transaction_type=TransactionType.REFILL,
+            )
+        )
         await self.session.commit()
         await self.session.refresh(db_user)
 
-        logger.info(f"Пользователь создан в БД: ID={db_user.id}, Имя={db_user.username}")
+        logger.info(
+            f"Пользователь создан в БД: ID={db_user.id}, Имя={db_user.username}, "
+            f"бонус={BillingService.WELCOME_BONUS}"
+        )
 
         return db_user
 

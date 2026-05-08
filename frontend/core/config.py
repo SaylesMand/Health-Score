@@ -16,8 +16,8 @@ class LoyaltyTier:
 
 LOYALTY_TIERS: tuple[LoyaltyTier, ...] = (
     LoyaltyTier("Bronze", 1, 0, 0, "🟢 Logistic Regression", "bronze"),
-    LoyaltyTier("Silver", 2, 5, 100, "🔵 XGBoost", "silver"),
-    LoyaltyTier("Gold", 3, 10, 500, "🟡 Voting Ensemble", "gold"),
+    LoyaltyTier("Silver", 2, 5, 500, "🔵 XGBoost", "silver"),
+    LoyaltyTier("Gold", 3, 10, 1000, "🟡 Voting Ensemble", "gold"),
 )
 
 TIER_BY_NAME = {t.name: t for t in LOYALTY_TIERS}

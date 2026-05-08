@@ -9,16 +9,16 @@ async def test_register_creates_user(client):
     assert body["username"] == "bob"
     assert body["email"] == "bob@example.com"
     assert body["role"] == "user"
-    assert body["balance"] == 0.0
+    assert body["balance"] == 200.0
 
 
 async def test_register_rejects_duplicate_email(client):
     """Повторная регистрация с тем же email возвращает 400."""
-    payload = {"username": "u1", "email": "dup@example.com", "password": "secret123"}
+    payload = {"username": "user1", "email": "dup@example.com", "password": "secret123"}
     await client.post("/api/auth/register", json=payload)
     res = await client.post(
         "/api/auth/register",
-        json={"username": "u2", "email": "dup@example.com", "password": "secret123"},
+        json={"username": "user2", "email": "dup@example.com", "password": "secret123"},
     )
     assert res.status_code == 400
 

@@ -32,8 +32,6 @@ def _payload(model_type: str = "bronze") -> dict:
 
 async def test_predict_charges_and_returns_pending(client, registered_user, stub_ml_model):
     """Успешный predict списывает 100 кр и возвращает pending->completed (eager Celery)."""
-    await client.post("/api/billing/refill", json={"amount": 200}, headers=registered_user["auth"])
-
     res = await client.post(
         "/api/predict/predict", json=_payload(), headers=registered_user["auth"]
     )
@@ -52,7 +50,13 @@ async def test_predict_charges_and_returns_pending(client, registered_user, stub
 
 
 async def test_predict_402_on_insufficient_balance(client, registered_user, stub_ml_model):
-    """Без баланса predict возвращает 402."""
+    """После исчерпания welcome-бонуса третий predict возвращает 402."""
+    for _ in range(2):
+        res = await client.post(
+            "/api/predict/predict", json=_payload(), headers=registered_user["auth"]
+        )
+        assert res.status_code == 200
+
     res = await client.post(
         "/api/predict/predict", json=_payload(), headers=registered_user["auth"]
     )
@@ -61,7 +65,6 @@ async def test_predict_402_on_insufficient_balance(client, registered_user, stub
 
 async def test_predict_403_on_unavailable_model(client, registered_user, stub_ml_model):
     """Bronze-юзер не может вызвать Gold-модель: 403."""
-    await client.post("/api/billing/refill", json={"amount": 200}, headers=registered_user["auth"])
     res = await client.post(
         "/api/predict/predict",
         json=_payload(model_type="gold"),
@@ -72,8 +75,6 @@ async def test_predict_403_on_unavailable_model(client, registered_user, stub_ml
 
 async def test_predict_503_on_celery_failure_refunds(client, registered_user, stub_ml_model):
     """При сбое постановки в Celery возвращается 503 и происходит refund."""
-    await client.post("/api/billing/refill", json={"amount": 200}, headers=registered_user["auth"])
-
     with patch(
         "app.api.endpoints.predict.compute_health_prediction.delay",
         side_effect=RuntimeError("broker down"),
