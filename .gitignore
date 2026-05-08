@@ -1,0 +1,47 @@
+# Секреты
+.env
+.env.*
+!.env.example
+
+# Виртуальные окружения
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Celery
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat.pid
+
+# Логи и временные файлы
+logs/
+*.log
+temp/
+tmp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# ОС
+.DS_Store
+Thumbs.db
+
+# uv
+.python-version

@@ -1,0 +1,25 @@
+repos:
+  # Стандартные хуки для чистоты репозитория
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+
+  # Ruff: Линтер и Форматтер
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4 # Актуальная стабильная версия
+    hooks:
+      # Запуск линтера (с автоисправлением того, что указано в fixable)
+      - id: ruff
+        args: [ --fix ]
+      # Запуск форматтера (заменяет Black)
+      - id: ruff-format
+
+  # Conventional Commits: Проверка сообщений коммита
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.2.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
