@@ -89,7 +89,6 @@ UI отдельно: `uv run streamlit run frontend/main.py`.
 | POST  | /api/auth/login                       | Логин, выдача JWT                       |
 | GET   | /api/auth/me                          | Профиль                                 |
 | GET   | /api/billing/balance                  | Баланс и уровень лояльности             |
-| POST  | /api/billing/refill                   | Самостоятельное пополнение              |
 | POST  | /api/predict/predict                  | Заказать ML-предсказание                |
 | GET   | /api/predict/history                  | История предсказаний                    |
 | POST  | /api/gamification/generate_challenge  | Получить математическую задачу          |
