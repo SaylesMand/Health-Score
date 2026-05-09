@@ -2,7 +2,8 @@
 
 Асинхронный ML-сервис: оценка вероятности сердечно-сосудистых заболеваний по биометрии. С биллингом, ролями, геймификацией и атомарной защитой средств.
 
-УТП и финмодель: [BUSINESS_PLAN.md](BUSINESS_PLAN.md).
+- УТП и финмодель: [BUSINESS_PLAN.md](BUSINESS_PLAN.md).
+- Обзор работоспособности сервиса: [Google Drive](https://drive.google.com/file/d/1LKkeDTBA9JWumtD3ZXs0GdSNza6OtPLM/view?usp=sharing)
 
 ## Структура проекта
 
